@@ -115,7 +115,13 @@
     position:absolute;inset:0;
   }
   .detail-media-wrap video, .detail-media-wrap img{
-    width:100%;height:100%;object-fit:cover;display:block;
+    width:100%;height:100%;object-fit:contain;display:block;background:#000;
+  }
+  .unmute-btn{
+    position:absolute;bottom:200px;left:16px;z-index:3;
+    background:rgba(21,21,28,.75);border:1px solid rgba(255,255,255,.2);color:var(--text);
+    width:40px;height:40px;border-radius:50%;font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
   }
   .detail-overlay-top{
     position:absolute;top:0;left:0;right:0;
@@ -219,6 +225,8 @@
   <div class="detail-overlay-top">
     <button class="close-x" id="closeDetail">&times;</button>
   </div>
+
+  <button class="unmute-btn" id="unmuteBtn">🔇</button>
 
   <div class="detail-overlay-bottom">
     <div class="detail-info">
@@ -334,6 +342,8 @@ function openDetail(id){
 
   const vid = document.getElementById('detailMedia');
   const img = document.getElementById('detailMediaImg');
+  vid.muted = true;
+  document.getElementById('unmuteBtn').textContent = '🔇';
   if(p.preview_url){
     vid.src = p.preview_url; vid.style.display='block'; img.style.display='none';
     vid.play().catch(()=>{});
@@ -351,6 +361,11 @@ document.getElementById('closeDetail').addEventListener('click', ()=>{
   const vid = document.getElementById('detailMedia');
   vid.pause();
   vid.src = '';
+});
+document.getElementById('unmuteBtn').addEventListener('click', ()=>{
+  const vid = document.getElementById('detailMedia');
+  vid.muted = !vid.muted;
+  document.getElementById('unmuteBtn').textContent = vid.muted ? '🔇' : '🔊';
 });
 
 async function bumpDownload(id){
