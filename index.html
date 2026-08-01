@@ -106,29 +106,76 @@
 
   .empty{text-align:center;color:var(--muted);font-size:13px;padding:50px 10px;}
 
-  /* ---- Detail modal ---- */
+  /* ---- Detail full-screen (TikTok style) ---- */
+  .detail-screen{
+    position:fixed;inset:0;background:#000;z-index:60;display:none;
+    flex-direction:column;
+  }
+  .detail-media-wrap{
+    position:absolute;inset:0;
+  }
+  .detail-media-wrap video, .detail-media-wrap img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .detail-overlay-top{
+    position:absolute;top:0;left:0;right:0;
+    padding:16px;display:flex;justify-content:space-between;align-items:flex-start;
+    background:linear-gradient(180deg, rgba(0,0,0,.6), transparent);
+    z-index:2;
+  }
+  .close-x{
+    background:rgba(21,21,28,.7);border:1px solid var(--line);color:var(--text);
+    width:36px;height:36px;border-radius:50%;font-size:19px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .detail-overlay-bottom{
+    position:absolute;bottom:0;left:0;right:0;
+    padding:20px 16px 26px;
+    background:linear-gradient(0deg, rgba(0,0,0,.85), transparent);
+    display:flex;align-items:flex-end;justify-content:space-between;gap:14px;
+    z-index:2;
+  }
+  .detail-info{flex:1;min-width:0;}
+  .detail-title{font-size:17px;font-weight:700;margin:0 0 6px;}
+  .detail-tag{
+    display:inline-block;font-size:10.5px;color:var(--accent2);
+    background:rgba(255,255,255,.08);padding:3px 10px;border-radius:20px;
+    border:1px solid rgba(255,255,255,.15);margin-bottom:8px;
+  }
+  .detail-desc{color:#c9c9d4;font-size:12.5px;line-height:1.5;margin:0;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .detail-actions{
+    display:flex;flex-direction:column;gap:14px;align-items:center;flex:none;
+  }
+  .action-btn{
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    background:none;border:none;cursor:pointer;color:var(--text);
+  }
+  .action-circle{
+    width:50px;height:50px;border-radius:50%;background:var(--grad);
+    display:flex;align-items:center;justify-content:center;font-size:19px;color:#0d0d12;
+  }
+  .action-circle.secondary{background:rgba(255,255,255,.12);color:var(--text);border:1px solid rgba(255,255,255,.2);}
+  .action-label{font-size:10.5px;font-weight:600;}
+
+  /* ---- Support modal (bottom sheet, tetap seperti semula) ---- */
   .modal-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);
-    display:flex;align-items:flex-end;justify-content:center;z-index:50;
+    display:flex;align-items:flex-end;justify-content:center;z-index:55;
   }
   .modal{
     width:100%;max-width:640px;background:var(--panel);border:1px solid var(--line);
     border-radius:22px 22px 0 0;max-height:92vh;overflow-y:auto;
   }
-  .modal-media{width:100%;aspect-ratio:1/1;background:var(--panel-2);object-fit:cover;}
   .modal-body{padding:20px 18px 30px;}
   .modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
   .modal-title{font-size:19px;font-weight:700;margin:0 0 6px;}
-  .close-x{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
-    width:32px;height:32px;border-radius:9px;font-size:18px;cursor:pointer;flex:none;}
   .modal-desc{color:var(--muted);font-size:13.5px;line-height:1.6;margin:14px 0 22px;}
-  .dl-buttons{display:flex;flex-direction:column;gap:10px;}
   .dl-btn{
     display:flex;align-items:center;justify-content:center;gap:8px;
     padding:14px;border-radius:12px;font-weight:600;font-size:14px;border:none;cursor:pointer;
   }
   .dl-primary{background:var(--grad);color:#0d0d12;}
-  .dl-secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
 
   /* ---- Support modal ---- */
   .support-card{
@@ -162,26 +209,32 @@
   <div id="grid" class="grid"></div>
 </div>
 
-<!-- Detail modal -->
-<div id="detailBackdrop" class="modal-backdrop" style="display:none;">
-  <div class="modal">
-    <div style="position:relative;">
-      <video id="detailMedia" class="modal-media" muted loop playsinline controls></video>
-      <img id="detailMediaImg" class="modal-media" style="display:none;">
+<!-- Detail full-screen -->
+<div id="detailScreen" class="detail-screen">
+  <div class="detail-media-wrap">
+    <video id="detailMedia" muted loop playsinline autoplay></video>
+    <img id="detailMediaImg" style="display:none;">
+  </div>
+
+  <div class="detail-overlay-top">
+    <button class="close-x" id="closeDetail">&times;</button>
+  </div>
+
+  <div class="detail-overlay-bottom">
+    <div class="detail-info">
+      <span class="detail-tag" id="detailCategory"></span>
+      <div class="detail-title" id="detailTitle"></div>
+      <p class="detail-desc" id="detailDesc"></p>
     </div>
-    <div class="modal-body">
-      <div class="modal-head">
-        <div>
-          <div class="modal-title" id="detailTitle"></div>
-          <span class="card-tag" id="detailCategory"></span>
-        </div>
-        <button class="close-x" id="closeDetail">&times;</button>
-      </div>
-      <p class="modal-desc" id="detailDesc"></p>
-      <div class="dl-buttons">
-        <button class="dl-btn dl-primary" id="dlXml">Download XML</button>
-        <button class="dl-btn dl-secondary" id="dlFile">Download File Preset</button>
-      </div>
+    <div class="detail-actions">
+      <button class="action-btn" id="dlXml">
+        <span class="action-circle">XML</span>
+        <span class="action-label">XML</span>
+      </button>
+      <button class="action-btn" id="dlFile">
+        <span class="action-circle secondary">5MB</span>
+        <span class="action-label">5MB</span>
+      </button>
     </div>
   </div>
 </div>
@@ -283,6 +336,7 @@ function openDetail(id){
   const img = document.getElementById('detailMediaImg');
   if(p.preview_url){
     vid.src = p.preview_url; vid.style.display='block'; img.style.display='none';
+    vid.play().catch(()=>{});
   } else {
     vid.style.display='none'; img.style.display='block'; img.src = p.thumbnail_url || '';
   }
@@ -290,11 +344,13 @@ function openDetail(id){
   document.getElementById('dlXml').onclick = ()=>{ bumpDownload(p.id); window.open(p.xml_url, '_blank'); };
   document.getElementById('dlFile').onclick = ()=>{ bumpDownload(p.id); window.open(p.file_url, '_blank'); };
 
-  document.getElementById('detailBackdrop').style.display = 'flex';
+  document.getElementById('detailScreen').style.display = 'flex';
 }
 document.getElementById('closeDetail').addEventListener('click', ()=>{
-  document.getElementById('detailBackdrop').style.display = 'none';
-  document.getElementById('detailMedia').pause();
+  document.getElementById('detailScreen').style.display = 'none';
+  const vid = document.getElementById('detailMedia');
+  vid.pause();
+  vid.src = '';
 });
 
 async function bumpDownload(id){
