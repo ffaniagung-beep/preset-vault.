@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Admin · Preset Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0d0d12;
+    --panel:#15151c;
+    --panel-2:#1c1c26;
+    --line:#282833;
+    --text:#edecf2;
+    --muted:#8a8a9a;
+    --accent1:#8b6bff;
+    --accent2:#00d9c8;
+    --danger:#ff5d6c;
+    --grad: linear-gradient(135deg,var(--accent1),var(--accent2));
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139,107,255,.12), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(0,217,200,.08), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---- Top bar ---- */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px;
+    background:rgba(13,13,18,.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;letter-spacing:.2px;}
+  .brand .diamond{width:9px;height:9px;background:var(--grad);transform:rotate(45deg);border-radius:2px;flex:none;}
+  .logout-btn{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:8px 12px;border-radius:10px;font-size:12px;font-family:'Inter';cursor:pointer;
+  }
+
+  .wrap{max-width:620px;margin:0 auto;padding:0 16px;}
+
+  /* ---- Login ---- */
+  .login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .login-card{
+    width:100%;max-width:360px;background:var(--panel);
+    border:1px solid var(--line);border-radius:20px;padding:32px 26px;
+  }
+  .login-mark{
+    width:44px;height:44px;border-radius:12px;background:var(--grad);
+    display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+    font-weight:700;font-size:18px;color:#0d0d12;
+  }
+  .login-card h1{font-size:20px;margin:0 0 4px;}
+  .login-card p{color:var(--muted);font-size:13px;margin:0 0 22px;}
+
+  label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px;font-weight:500;}
+  input[type=text], input[type=email], input[type=password], textarea, select{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--text);padding:12px 13px;border-radius:11px;font-size:14px;
+    font-family:'Inter';outline:none;
+  }
+  input:focus, textarea:focus, select:focus{border-color:var(--accent1);}
+  textarea{resize:vertical;min-height:70px;}
+
+  .btn{
+    width:100%;padding:13px;border-radius:11px;border:none;
+    font-weight:600;font-size:14px;cursor:pointer;font-family:'Inter';
+    margin-top:20px;
+  }
+  .btn-primary{background:var(--grad);color:#0d0d12;}
+  .btn-primary:disabled{opacity:.5;}
+  .btn-ghost{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
+  .btn-danger{background:rgba(255,93,108,.12);color:var(--danger);border:1px solid rgba(255,93,108,.3);}
+
+  .error-msg{
+    background:rgba(255,93,108,.1);border:1px solid rgba(255,93,108,.3);
+    color:var(--danger);font-size:12.5px;padding:10px 12px;border-radius:9px;margin-top:12px;
+  }
+  .ok-msg{
+    background:rgba(0,217,200,.1);border:1px solid rgba(0,217,200,.3);
+    color:var(--accent2);font-size:12.5px;padding:10px 12px;border-radius:9px;margin-top:12px;
+  }
+
+  /* ---- Dashboard ---- */
+  .section-title{
+    display:flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;
+    margin:26px 0 12px;
+  }
+  .section-title .diamond{width:6px;height:6px;background:var(--accent1);transform:rotate(45deg);border-radius:1px;}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:20px;margin-bottom:16px;
+  }
+
+  .file-row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--panel-2);border:1px dashed var(--line);
+    border-radius:11px;padding:12px 13px;margin-top:6px;font-size:13px;
+  }
+  .file-row input[type=file]{display:none;}
+  .file-row .fname{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
+  .pick-btn{
+    background:var(--panel);border:1px solid var(--line);color:var(--text);
+    padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;flex:none;
+  }
+  .hint{font-size:11px;color:var(--muted);margin-top:5px;}
+
+  progress{width:100%;height:5px;border-radius:4px;overflow:hidden;margin-top:10px;accent-color:var(--accent1);}
+
+  /* ---- List ---- */
+  .preset-item{
+    display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:12px;margin-bottom:10px;align-items:center;
+  }
+  .thumb{
+    width:56px;height:56px;border-radius:9px;background:var(--panel-2);
+    flex:none;object-fit:cover;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-size:10px;
+  }
+  .p-info{flex:1;min-width:0;}
+  .p-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .p-meta{font-size:11.5px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;}
+  .tag{
+    background:var(--panel-2);padding:2px 8px;border-radius:20px;font-size:10.5px;
+    color:var(--accent2);border:1px solid var(--line);
+  }
+  .p-actions{display:flex;gap:6px;flex:none;}
+  .icon-btn{
+    width:32px;height:32px;border-radius:9px;background:var(--panel-2);
+    border:1px solid var(--line);color:var(--muted);cursor:pointer;font-size:14px;
+  }
+  .icon-btn.danger{color:var(--danger);}
+
+  .empty{
+    text-align:center;color:var(--muted);font-size:13px;padding:40px 10px;
+  }
+
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);
+    display:flex;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .modal{
+    width:100%;max-width:620px;background:var(--panel);border:1px solid var(--line);
+    border-radius:20px 20px 0 0;padding:22px 18px 30px;max-height:88vh;overflow-y:auto;
+  }
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .close-x{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-mark">◆</div>
+    <h1>Preset Vault Admin</h1>
+    <p>Masuk buat kelola preset Alight Motion.</p>
+    <form id="loginForm">
+      <label>Email</label>
+      <input type="email" id="loginEmail" required autocomplete="username">
+      <label>Password</label>
+      <input type="password" id="loginPassword" required autocomplete="current-password">
+      <button class="btn btn-primary" type="submit" id="loginBtn">Masuk</button>
+      <div id="loginMsg"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div id="dashboard" style="display:none;">
+  <div class="topbar">
+    <div class="brand"><span class="diamond"></span> Preset Vault · Admin</div>
+    <button class="logout-btn" id="logoutBtn">Keluar</button>
+  </div>
+
+  <div class="wrap">
+    <div class="section-title"><span class="diamond"></span> Upload preset baru</div>
+    <div class="card">
+      <form id="uploadForm">
+        <label>Judul preset</label>
+        <input type="text" id="f_title" required placeholder="Contoh: Glitch Zoom Transition">
+
+        <label>Kategori</label>
+        <select id="f_category" required>
+          <option value="">Pilih kategori</option>
+          <option>Transisi</option>
+          <option>Zoom</option>
+          <option>Text Effect</option>
+          <option>Shake / Glitch</option>
+          <option>Color Grading</option>
+          <option>Lainnya</option>
+        </select>
+
+        <label>Deskripsi</label>
+        <textarea id="f_desc" placeholder="Cara pakai, tips, atau catatan singkat"></textarea>
+
+        <label>Thumbnail (gambar)</label>
+        <div class="file-row">
+          <span class="fname" id="name_thumb">Belum ada file</span>
+          <label class="pick-btn">Pilih<input type="file" id="f_thumb" accept="image/*"></label>
+        </div>
+
+        <label>Video preview</label>
+        <div class="file-row">
+          <span class="fname" id="name_preview">Belum ada file</span>
+          <label class="pick-btn">Pilih<input type="file" id="f_preview" accept="video/*"></label>
+        </div>
+
+        <label>Link XML preset</label>
+        <input type="text" id="f_xml_url" placeholder="Tempel link Google Drive / share XML di sini">
+        <div class="hint">Pastikan link Google Drive di-set "Siapa saja yang punya link".</div>
+
+        <label>Link file preset (.5mb / Alight Motion share link)</label>
+        <input type="text" id="f_5mb_url" placeholder="Tempel link Google Drive / link share Alight Motion">
+        <div class="hint">Bisa link Google Drive atau link share dari app Alight Motion.</div>
+
+        <progress id="uploadProgress" value="0" max="100" style="display:none;"></progress>
+        <button class="btn btn-primary" type="submit" id="uploadBtn">Upload preset</button>
+        <div id="uploadMsg"></div>
+      </form>
+    </div>
+
+    <div class="section-title"><span class="diamond"></span> Preset terpasang (<span id="countLabel">0</span>)</div>
+    <div id="presetList"></div>
+  </div>
+</div>
+
+<!-- ================= EDIT MODAL ================= -->
+<div id="editModalBackdrop" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 style="margin:0;">Edit preset</h3>
+      <button class="close-x" id="closeEdit">&times;</button>
+    </div>
+    <form id="editForm">
+      <input type="hidden" id="e_id">
+      <label>Judul preset</label>
+      <input type="text" id="e_title" required>
+      <label>Kategori</label>
+      <select id="e_category" required>
+        <option>Transisi</option><option>Zoom</option><option>Text Effect</option>
+        <option>Shake / Glitch</option><option>Color Grading</option><option>Lainnya</option>
+      </select>
+      <label>Deskripsi</label>
+      <textarea id="e_desc"></textarea>
+      <button class="btn btn-primary" type="submit">Simpan perubahan</button>
+      <div id="editMsg"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ISI DULU DENGAN KREDENSIAL SUPABASE PROJECT KAMU
+   Settings → API di dashboard Supabase
+========================================================= */
+const SUPABASE_URL = "https://vizstigkfaijvnvfkdnn.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_6ZszYF0rRmxZ1uChqZubAA_jwMP0EXK";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const BUCKETS = {
+  thumb: "thumbnails",
+  preview: "previews",
+  xml: "xml-files",
+  file5mb: "preset-files"
+};
+
+const loginScreen = document.getElementById('loginScreen');
+const dashboard = document.getElementById('dashboard');
+
+/* ---------- AUTH ---------- */
+async function checkSession(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){
+    loginScreen.style.display='none';
+    dashboard.style.display='block';
+    loadPresets();
+  } else {
+    loginScreen.style.display='flex';
+    dashboard.style.display='none';
+  }
+}
+checkSession();
+
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const msg = document.getElementById('loginMsg');
+  btn.disabled = true; btn.textContent = 'Memproses...';
+  msg.innerHTML = '';
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Masuk';
+  if(error){
+    msg.innerHTML = `<div class="error-msg">${error.message}</div>`;
+  } else {
+    checkSession();
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  checkSession();
+});
+
+/* ---------- FILE PICK LABEL ---------- */
+function bindFileName(inputId, labelId){
+  document.getElementById(inputId).addEventListener('change', (e)=>{
+    const f = e.target.files[0];
+    document.getElementById(labelId).textContent = f ? f.name : 'Belum ada file';
+  });
+}
+bindFileName('f_thumb','name_thumb');
+bindFileName('f_preview','name_preview');
+
+
+/* ---------- UPLOAD HELPER ---------- */
+async function uploadToBucket(bucket, file){
+  const ext = file.name.split('.').pop();
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from(bucket).upload(path, file, { upsert:false });
+  if(error) throw error;
+  const { data } = sb.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+/* ---------- SUBMIT UPLOAD ---------- */
+document.getElementById('uploadForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const btn = document.getElementById('uploadBtn');
+  const msg = document.getElementById('uploadMsg');
+  const bar = document.getElementById('uploadProgress');
+  msg.innerHTML = '';
+
+  const thumbFile = document.getElementById('f_thumb').files[0];
+  const previewFile = document.getElementById('f_preview').files[0];
+  const xmlUrlInput = document.getElementById('f_xml_url').value.trim();
+  const file5mbUrlInput = document.getElementById('f_5mb_url').value.trim();
+
+  if(!thumbFile || !xmlUrlInput || !file5mbUrlInput){
+    msg.innerHTML = `<div class="error-msg">Thumbnail, link XML, dan link file preset wajib diisi.</div>`;
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Mengupload...'; bar.style.display='block'; bar.value=10;
+
+  try{
+    const thumbUrl = await uploadToBucket(BUCKETS.thumb, thumbFile); bar.value=50;
+    const previewUrl = previewFile ? await uploadToBucket(BUCKETS.preview, previewFile) : null; bar.value=80;
+    const xmlUrl = xmlUrlInput;
+    const fileUrl = file5mbUrlInput;
+
+    const { error } = await sb.from('presets').insert({
+      title: document.getElementById('f_title').value,
+      category: document.getElementById('f_category').value,
+      description: document.getElementById('f_desc').value,
+      thumbnail_url: thumbUrl,
+      preview_url: previewUrl,
+      xml_url: xmlUrl,
+      file_url: fileUrl
+    });
+    if(error) throw error;
+
+    bar.value = 100;
+    msg.innerHTML = `<div class="ok-msg">Preset berhasil diupload.</div>`;
+    document.getElementById('uploadForm').reset();
+    ['name_thumb','name_preview'].forEach(id=>document.getElementById(id).textContent='Belum ada file');
+    loadPresets();
+  }catch(err){
+    msg.innerHTML = `<div class="error-msg">${err.message || 'Upload gagal, coba lagi.'}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Upload preset';
+    setTimeout(()=>{ bar.style.display='none'; bar.value=0; }, 800);
+  }
+});
+
+/* ---------- LIST PRESETS ---------- */
+async function loadPresets(){
+  const listEl = document.getElementById('presetList');
+  const { data, error } = await sb.from('presets').select('*').order('created_at', { ascending:false });
+  if(error){
+    listEl.innerHTML = `<div class="error-msg">${error.message}</div>`;
+    return;
+  }
+  document.getElementById('countLabel').textContent = data.length;
+  if(data.length === 0){
+    listEl.innerHTML = `<div class="empty">Belum ada preset. Upload yang pertama di atas.</div>`;
+    return;
+  }
+  listEl.innerHTML = data.map(p => `
+    <div class="preset-item">
+      ${p.thumbnail_url ? `<img class="thumb" src="${p.thumbnail_url}">` : `<div class="thumb">N/A</div>`}
+      <div class="p-info">
+        <div class="p-title">${escapeHtml(p.title)}</div>
+        <div class="p-meta">
+          <span class="tag">${escapeHtml(p.category || '-')}</span>
+          <span class="mono">${new Date(p.created_at).toLocaleDateString('id-ID')}</span>
+        </div>
+      </div>
+      <div class="p-actions">
+        <button class="icon-btn" onclick="openEdit('${p.id}')">✎</button>
+        <button class="icon-btn danger" onclick="deletePreset('${p.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+}
+
+/* ---------- DELETE ---------- */
+async function deletePreset(id){
+  if(!confirm('Hapus preset ini? File di storage tidak otomatis terhapus, cuma datanya di tabel.')) return;
+  const { error } = await sb.from('presets').delete().eq('id', id);
+  if(error){ alert(error.message); return; }
+  loadPresets();
+}
+
+/* ---------- EDIT ---------- */
+let currentEditData = [];
+async function openEdit(id){
+  const { data, error } = await sb.from('presets').select('*').eq('id', id).single();
+  if(error){ alert(error.message); return; }
+  document.getElementById('e_id').value = data.id;
+  document.getElementById('e_title').value = data.title;
+  document.getElementById('e_category').value = data.category;
+  document.getElementById('e_desc').value = data.description || '';
+  document.getElementById('editModalBackdrop').style.display = 'flex';
+}
+document.getElementById('closeEdit').addEventListener('click', ()=>{
+  document.getElementById('editModalBackdrop').style.display = 'none';
+});
+document.getElementById('editForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const msg = document.getElementById('editMsg');
+  const id = document.getElementById('e_id').value;
+  const { error } = await sb.from('presets').update({
+    title: document.getElementById('e_title').value,
+    category: document.getElementById('e_category').value,
+    description: document.getElementById('e_desc').value
+  }).eq('id', id);
+  if(error){
+    msg.innerHTML = `<div class="error-msg">${error.message}</div>`;
+    return;
+  }
+  document.getElementById('editModalBackdrop').style.display = 'none';
+  loadPresets();
+});
+</script>
+</body>
+</html>
