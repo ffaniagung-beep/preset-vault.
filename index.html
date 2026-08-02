@@ -91,6 +91,12 @@
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .card{
     background:var(--panel);border:1px solid var(--line);border-radius:15px;overflow:hidden;cursor:pointer;
+    position:relative;
+  }
+  .new-badge{
+    position:absolute;top:8px;left:8px;z-index:2;
+    background:var(--grad);color:#0d0d12;font-size:9.5px;font-weight:700;
+    padding:3px 8px;border-radius:20px;letter-spacing:.3px;
   }
   .card-thumb{
     width:100%;aspect-ratio:1/1;object-fit:cover;background:var(--panel-2);
@@ -150,6 +156,10 @@
   }
   .detail-desc{color:#c9c9d4;font-size:12.5px;line-height:1.5;margin:0;
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .credit-block{margin-top:8px;font-size:12px;color:#c9c9d4;line-height:1.7;font-family:'JetBrains Mono',monospace;}
+  .credit-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .credit-handle{color:var(--accent2);font-weight:600;font-family:'Inter',sans-serif;}
+  .video-link{color:var(--accent1);text-decoration:underline;}
   .detail-actions{
     display:flex;flex-direction:column;gap:14px;align-items:center;flex:none;
   }
@@ -200,16 +210,14 @@
 <div class="wrap">
   <div class="hero">
     <div class="eyebrow"><span class="mono">◆</span> Preset Alight Motion · Gratis</div>
-    <h1>Cari efek, transisi, dan gaya edit favoritmu.</h1>
-    <p>Semua preset siap pakai — tinggal download XML atau file-nya, langsung import ke Alight Motion.</p>
+    <h1>Cari preset favoritmu di sini.</h1>
+    <p>Tinggal download, import ke Alight Motion, beres✨</p>
   </div>
 
   <div class="search-box">
     <span class="mono" style="color:var(--muted);">⌕</span>
     <input type="text" id="searchInput" placeholder="Cari preset... (misal: glitch, zoom, transisi)">
   </div>
-
-  <div class="chips" id="chips"></div>
 
   <div class="section-label"><span class="diamond"></span> <span id="resultLabel">Semua preset</span></div>
   <div id="grid" class="grid"></div>
@@ -230,9 +238,17 @@
 
   <div class="detail-overlay-bottom">
     <div class="detail-info">
-      <span class="detail-tag" id="detailCategory"></span>
       <div class="detail-title" id="detailTitle"></div>
-      <p class="detail-desc" id="detailDesc"></p>
+      <div class="credit-block" id="creditBlock">
+        <div class="credit-line">────────────────────────</div>
+        <div class="credit-line">👤 Creator</div>
+        <div class="credit-line credit-handle" id="detailCreator"></div>
+        <div class="credit-line" id="detailVideoWrap" style="display:none;">
+          🎵 Original Video<br>
+          <a id="detailVideoLink" href="#" target="_blank" class="video-link">[ Lihat di TikTok ↗ ]</a>
+        </div>
+        <div class="credit-line">────────────────────────</div>
+      </div>
     </div>
     <div class="detail-actions">
       <button class="action-btn" id="dlXml">
@@ -286,10 +302,10 @@
       <p class="modal-desc">Percayalah... Buat ide prompt sampai berjam² 😭😭☕</p>
 
       <div class="support-card" style="margin-bottom:10px;">
-        <a href="https://saweria.co/trilll" target="_blank" class="dl-btn dl-primary" style="text-decoration:none;display:block;">❤️ Saweria</a>
+        <a href="https://saweria.co/GANTI_USERNAME_KAMU" target="_blank" class="dl-btn dl-primary" style="text-decoration:none;display:block;">❤️ Saweria</a>
       </div>
       <div class="support-card">
-        <a href="https://whatsapp.com/channel/0029Vb6TEce8V0trHDvkdp32" target="_blank" class="dl-btn dl-primary" style="text-decoration:none;display:block;">❤️ Join saluran WhatsApp</a>
+        <a href="https://whatsapp.com/channel/GANTI_LINK_SALURAN" target="_blank" class="dl-btn dl-primary" style="text-decoration:none;display:block;">❤️ Join saluran WhatsApp</a>
       </div>
 
       <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
@@ -311,7 +327,8 @@ const SUPABASE_ANON_KEY = "sb_publishable_6ZszYF0rRmxZ1uChqZubAA_jwMP0EXK";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let allPresets = [];
-let activeCategory = "Semua";
+let currentList = [];
+let currentIndex = -1;
 
 async function loadPresets(){
   const { data, error } = await sb.from('presets').select('*').order('created_at', { ascending:false });
@@ -320,33 +337,22 @@ async function loadPresets(){
     return;
   }
   allPresets = data || [];
-  renderChips();
   renderGrid();
 }
 
-function renderChips(){
-  const cats = ["Semua", ...new Set(allPresets.map(p=>p.category).filter(Boolean))];
-  document.getElementById('chips').innerHTML = cats.map(c=>`
-    <div class="chip ${c===activeCategory?'active':''}" data-cat="${c}">${c}</div>
-  `).join('');
-  document.querySelectorAll('.chip').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      activeCategory = el.dataset.cat;
-      renderChips();
-      renderGrid();
-    });
-  });
+function isNew(createdAt){
+  const days = (Date.now() - new Date(createdAt).getTime()) / (1000*60*60*24);
+  return days <= 3;
 }
 
 function renderGrid(){
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   let filtered = allPresets.filter(p=>{
-    const matchCat = activeCategory === "Semua" || p.category === activeCategory;
-    const matchSearch = !q || (p.title||'').toLowerCase().includes(q) || (p.category||'').toLowerCase().includes(q);
-    return matchCat && matchSearch;
+    return !q || (p.title||'').toLowerCase().includes(q) || (p.creator_handle||'').toLowerCase().includes(q);
   });
 
-  document.getElementById('resultLabel').textContent = q ? `Hasil untuk "${q}"` : (activeCategory === "Semua" ? "Semua preset" : activeCategory);
+  document.getElementById('resultLabel').textContent = q ? `Hasil untuk "${q}"` : "Semua preset";
+  currentList = filtered;
 
   const grid = document.getElementById('grid');
   if(filtered.length === 0){
@@ -355,10 +361,10 @@ function renderGrid(){
   }
   grid.innerHTML = filtered.map(p => `
     <div class="card" onclick="openDetail('${p.id}')">
+      ${isNew(p.created_at) ? `<span class="new-badge">NEW</span>` : ''}
       ${p.thumbnail_url ? `<img class="card-thumb" src="${p.thumbnail_url}" loading="lazy">` : `<div class="card-thumb">No image</div>`}
       <div class="card-body">
         <div class="card-title">${escapeHtml(p.title)}</div>
-        <span class="card-tag">${escapeHtml(p.category||'-')}</span>
       </div>
     </div>
   `).join('');
@@ -372,11 +378,27 @@ function escapeHtml(s){
 
 /* ---- Detail modal ---- */
 function openDetail(id){
-  const p = allPresets.find(x=>String(x.id) === String(id));
-  if(!p) return;
+  const idx = currentList.findIndex(x=>String(x.id) === String(id));
+  if(idx === -1) return;
+  showAt(idx);
+  document.getElementById('detailScreen').style.display = 'flex';
+}
+
+function showAt(idx){
+  if(idx < 0 || idx >= currentList.length) return;
+  currentIndex = idx;
+  const p = currentList[idx];
+
   document.getElementById('detailTitle').textContent = p.title;
-  document.getElementById('detailCategory').textContent = p.category || '-';
-  document.getElementById('detailDesc').textContent = p.description || 'Belum ada deskripsi untuk preset ini.';
+  document.getElementById('detailCreator').textContent = p.creator_handle || '@unknown';
+  const videoWrap = document.getElementById('detailVideoWrap');
+  const videoLink = document.getElementById('detailVideoLink');
+  if(p.original_video_url){
+    videoWrap.style.display = 'block';
+    videoLink.href = p.original_video_url;
+  } else {
+    videoWrap.style.display = 'none';
+  }
 
   const vid = document.getElementById('detailMedia');
   const img = document.getElementById('detailMediaImg');
@@ -386,14 +408,28 @@ function openDetail(id){
     vid.src = p.preview_url; vid.style.display='block'; img.style.display='none';
     vid.play().catch(()=>{});
   } else {
-    vid.style.display='none'; img.style.display='block'; img.src = p.thumbnail_url || '';
+    vid.pause(); vid.src=''; vid.style.display='none'; img.style.display='block'; img.src = p.thumbnail_url || '';
   }
 
   document.getElementById('dlXml').onclick = ()=>{ bumpDownload(p.id); window.open(p.xml_url, '_blank'); };
   document.getElementById('dlFile').onclick = ()=>{ bumpDownload(p.id); window.open(p.file_url, '_blank'); };
-
-  document.getElementById('detailScreen').style.display = 'flex';
 }
+
+/* ---- Swipe TikTok-style ---- */
+let touchStartY = 0;
+const detailScreenEl = document.getElementById('detailScreen');
+detailScreenEl.addEventListener('touchstart', (e)=>{
+  touchStartY = e.touches[0].clientY;
+}, { passive:true });
+detailScreenEl.addEventListener('touchend', (e)=>{
+  const diff = touchStartY - e.changedTouches[0].clientY;
+  if(Math.abs(diff) < 55) return;
+  if(diff > 0){
+    showAt(currentIndex + 1);
+  } else {
+    showAt(currentIndex - 1);
+  }
+}, { passive:true });
 document.getElementById('closeDetail').addEventListener('click', ()=>{
   document.getElementById('detailScreen').style.display = 'none';
   const vid = document.getElementById('detailMedia');
