@@ -199,18 +199,13 @@
         <label>Judul preset</label>
         <input type="text" id="f_title" required placeholder="Contoh: Glitch Zoom Transition">
 
-        <label>Kategori</label>
-        <select id="f_category" required>
-          <option value="">Pilih kategori</option>
-          <option>Transisi</option>
-          <option>Zoom</option>
-          <option>Text Effect</option>
-          <option>Shake / Glitch</option>
-          <option>Color Grading</option>
-          <option>Lainnya</option>
-        </select>
+        <label>Creator (username asli video)</label>
+        <input type="text" id="f_creator" placeholder="Contoh: @velocity_editz">
 
-        <label>Deskripsi</label>
+        <label>Link video asli (TikTok/Instagram)</label>
+        <input type="text" id="f_video_url" placeholder="Tempel link video aslinya di sini">
+
+        <label>Deskripsi (opsional)</label>
         <textarea id="f_desc" placeholder="Cara pakai, tips, atau catatan singkat"></textarea>
 
         <label>Thumbnail (gambar)</label>
@@ -255,11 +250,10 @@
       <input type="hidden" id="e_id">
       <label>Judul preset</label>
       <input type="text" id="e_title" required>
-      <label>Kategori</label>
-      <select id="e_category" required>
-        <option>Transisi</option><option>Zoom</option><option>Text Effect</option>
-        <option>Shake / Glitch</option><option>Color Grading</option><option>Lainnya</option>
-      </select>
+      <label>Creator</label>
+      <input type="text" id="e_creator">
+      <label>Link video asli</label>
+      <input type="text" id="e_video_url">
       <label>Deskripsi</label>
       <textarea id="e_desc"></textarea>
       <button class="btn btn-primary" type="submit">Simpan perubahan</button>
@@ -373,7 +367,8 @@ document.getElementById('uploadForm').addEventListener('submit', async (e)=>{
 
     const { error } = await sb.from('presets').insert({
       title: document.getElementById('f_title').value,
-      category: document.getElementById('f_category').value,
+      creator_handle: document.getElementById('f_creator').value,
+      original_video_url: document.getElementById('f_video_url').value,
       description: document.getElementById('f_desc').value,
       thumbnail_url: thumbUrl,
       preview_url: previewUrl,
@@ -414,7 +409,7 @@ async function loadPresets(){
       <div class="p-info">
         <div class="p-title">${escapeHtml(p.title)}</div>
         <div class="p-meta">
-          <span class="tag">${escapeHtml(p.category || '-')}</span>
+          <span class="tag">${escapeHtml(p.creator_handle || 'Tanpa creator')}</span>
           <span class="mono">${new Date(p.created_at).toLocaleDateString('id-ID')}</span>
         </div>
       </div>
@@ -445,7 +440,8 @@ async function openEdit(id){
   if(error){ alert(error.message); return; }
   document.getElementById('e_id').value = data.id;
   document.getElementById('e_title').value = data.title;
-  document.getElementById('e_category').value = data.category;
+  document.getElementById('e_creator').value = data.creator_handle || '';
+  document.getElementById('e_video_url').value = data.original_video_url || '';
   document.getElementById('e_desc').value = data.description || '';
   document.getElementById('editModalBackdrop').style.display = 'flex';
 }
@@ -458,7 +454,8 @@ document.getElementById('editForm').addEventListener('submit', async (e)=>{
   const id = document.getElementById('e_id').value;
   const { error } = await sb.from('presets').update({
     title: document.getElementById('e_title').value,
-    category: document.getElementById('e_category').value,
+    creator_handle: document.getElementById('e_creator').value,
+    original_video_url: document.getElementById('e_video_url').value,
     description: document.getElementById('e_desc').value
   }).eq('id', id);
   if(error){
